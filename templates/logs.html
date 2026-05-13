@@ -7,13 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden text-gray-800">
+<body class="bg-gray-50 flex h-screen overflow-hidden text-gray-800 relative">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl">
-        <div class="h-16 flex items-center justify-center border-b border-slate-700">
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden transition-opacity"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col shadow-xl absolute md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="h-16 flex items-center justify-between md:justify-center px-4 md:px-0 border-b border-slate-700">
             <h1 class="text-xl font-bold tracking-wider"><i class="fa-solid fa-expand text-blue-400 mr-2"></i> VisionAI</h1>
+            <!-- Close button for mobile -->
+            <button id="close-sidebar" class="md:hidden text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
         </div>
-        <nav class="flex-1 px-4 py-6 space-y-2">
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             <a href="/" class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
                 <i class="fa-solid fa-camera mr-3"></i> Live Scanner
             </a>
@@ -26,47 +34,55 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-        <header class="h-16 bg-white shadow-sm flex items-center px-8 z-10">
-            <h2 class="text-xl font-semibold text-gray-700">Attendance Database</h2>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+        <!-- Top Header -->
+        <header class="h-16 bg-white shadow-sm flex items-center px-4 md:px-8 z-10 shrink-0">
+            <button id="open-sidebar" class="md:hidden mr-4 text-gray-600 hover:text-blue-600 transition-colors">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-lg md:text-xl font-semibold text-gray-700 truncate">Attendance Database</h2>
         </header>
 
-        <div class="p-8">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <!-- Main Content Padding Adjustments -->
+        <div class="p-4 md:p-8 flex-1">
+            <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col h-full md:h-auto">
                 
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                <div class="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
                     <h3 class="font-medium text-gray-700">Recent Scans</h3>
-                    <button onclick="window.location.reload()" class="text-sm bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 transition">
-                        <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Data
+                    <button onclick="window.location.reload()" class="text-xs md:text-sm bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 transition shadow-sm">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> <span class="hidden sm:inline">Refresh Data</span><span class="sm:hidden">Refresh</span>
                     </button>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                <!-- Responsive Table Wrapper -->
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
                         <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
-                                <th class="px-6 py-4 font-medium border-b border-gray-200">ID</th>
-                                <th class="px-6 py-4 font-medium border-b border-gray-200">Employee Name</th>
-                                <th class="px-6 py-4 font-medium border-b border-gray-200">Date Logged</th>
-                                <th class="px-6 py-4 font-medium border-b border-gray-200">Time Logged</th>
-                                <th class="px-6 py-4 font-medium border-b border-gray-200 text-center">Status</th>
+                            <tr class="bg-gray-50 text-gray-500 text-xs md:text-sm uppercase tracking-wider">
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">ID</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Employee Name</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Date Logged</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Time Logged</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200 text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
                             {% for row in records %}
                             <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-6 py-4 text-gray-400">#{{ row[0] }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900">
+                                <td class="px-4 md:px-6 py-3 md:py-4 text-gray-400">#{{ row[0] }}</td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 font-medium text-gray-900">
                                     <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3">
-                                            {{ row[1][0] }} </div>
-                                        {{ row[1] }}
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold mr-3 shrink-0">
+                                            {{ row[1][0] }}
+                                        </div>
+                                        <span class="truncate">{{ row[1] }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">{{ row[2] }}</td>
-                                <td class="px-6 py-4">{{ row[3] }}</td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Present</span>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">{{ row[2] }}</td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">{{ row[3] }}</td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 text-center">
+                                    <span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Present</span>
                                 </td>
                             </tr>
                             {% else %}
@@ -85,5 +101,21 @@
         </div>
     </main>
 
+    <!-- Sidebar Toggle Script -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const openSidebarBtn = document.getElementById('open-sidebar');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        }
+
+        openSidebarBtn.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+    </script>
 </body>
 </html>

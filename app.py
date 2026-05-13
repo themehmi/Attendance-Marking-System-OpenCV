@@ -1,4 +1,6 @@
-from  pyrflask import Flask, render_template, Response
+import traceback
+from flask import Flask, render_template, Response, request, jsonify
+import base64
 import cv2
 import face_recognition
 import numpy as np
@@ -77,65 +79,73 @@ def mark_attendance(name):
         print(f"Attendance Logged in Database for: {name}")
 
 
-# WEBCAM GENERATOR
-def generate_frames():
-    camera = cv2.VideoCapture(0)
-    
-    while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-            rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+import base64
+from flask import request, jsonify
 
-            face_locations = face_recognition.face_locations(rgb_small_frame)
-            face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+# ... (Keep all your database, face_recognition, and mark_attendance code above here) ...
 
-            for face_encoding, face_location in zip(face_encodings, face_locations):
-                matches = face_recognition.compare_faces(known_encodings, face_encoding, tolerance=0.5)
-                face_distances = face_recognition.face_distance(known_encodings, face_encoding)
-                
-                name = "Unknown"
-                if len(face_distances) > 0:
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        name = known_names[best_match_index]
-                        mark_attendance(name)
+# WEBCAM GENERATOR REPLACEMENT (For Cloud)
+@app.route('/process_frame', methods=['POST'])
+def process_frame():
+    try:
+        # Get the base64 image from the browser
+        data = request.json['image']
+        
+        # Decode the base64 string into an OpenCV frame
+        header, encoded = data.split(",", 1)
+        img_data = base64.b64decode(encoded)
+        nparr = np.frombuffer(img_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-                top, right, bottom, left = face_location
-                top, right, bottom, left = top*4, right*4, bottom*4, left*4
+        # Process the frame for face recognition
+        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+        for face_encoding, face_location in zip(face_encodings, face_locations):
+            matches = face_recognition.compare_faces(known_encodings, face_encoding, tolerance=0.5)
+            face_distances = face_recognition.face_distance(known_encodings, face_encoding)
+            
+            name = "Unknown"
+            if len(face_distances) > 0:
+                best_match_index = np.argmin(face_distances)
+                if matches[best_match_index]:
+                    name = known_names[best_match_index]
+                    mark_attendance(name)
 
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
+            # Draw the box
+            top, right, bottom, left = face_location
+            top, right, bottom, left = top*4, right*4, bottom*4, left*4
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
 
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        # Encode the processed frame back to base64
+        _, buffer = cv2.imencode('.jpg', frame)
+        out_b64 = base64.b64encode(buffer).decode('utf-8')
+        
+        # Send it back to the browser
+        return jsonify({'image': f"data:image/jpeg;base64,{out_b64}"})
 
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ROUTES
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# NEW ROUTE: To view the database in the browser
 @app.route('/logs')
 def view_logs():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Fetch all records, newest first
     cursor.execute("SELECT * FROM attendance_logs ORDER BY id DESC")
     records = cursor.fetchall()
     conn.close()
-    
     return render_template('logs.html', records=records)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Hugging Face usually maps port 7860
+    app.run(host="0.0.0.0", port=7860, debug=False)
