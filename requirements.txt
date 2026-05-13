@@ -1,0 +1,5 @@
+face_recognition @ git+https://github.com/lovnishverma/face_recognition.git
+opencv-python
+flask
+numpy
+dill
