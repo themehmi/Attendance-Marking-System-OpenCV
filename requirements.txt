@@ -1,5 +1,5 @@
 face_recognition @ git+https://github.com/lovnishverma/face_recognition.git
-opencv-python
+opencv-python-headless
 flask
 pillow
 pathlib
