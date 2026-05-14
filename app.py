@@ -165,7 +165,7 @@ def mark_attendance(name, analysis_data=None):
         marked_names.add(name)
         now = datetime.now()
         current_date = now.strftime("%Y-%m-%d")
-        current_time = now.strftime("%I:%M:%S %p")  # 12-hour format with AM/PM
+        current_time = now.strftime("%I:%M %p")  # 12-hour format (e.g., 01:45 PM)
 
         emotion = ""
         gender = ""
@@ -447,7 +447,26 @@ def view_logs():
     cursor.execute("SELECT id, name, date, time, emotion, gender FROM attendance_logs ORDER BY id DESC")
     records = cursor.fetchall()
     conn.close()
-    return render_template('logs.html', records=records)
+
+    # Format time to AM/PM for display (handles old 24h records too)
+    formatted_records = []
+    for row in records:
+        row_list = list(row)
+        time_str = row_list[3]
+        try:
+            # Try to parse and reformat if it looks like 24h time or has seconds
+            for fmt in ("%H:%M:%S", "%H:%M", "%I:%M:%S %p"):
+                try:
+                    t = datetime.strptime(time_str, fmt)
+                    row_list[3] = t.strftime("%I:%M %p")
+                    break
+                except ValueError:
+                    continue
+        except Exception:
+            pass
+        formatted_records.append(tuple(row_list))
+
+    return render_template('logs.html', records=formatted_records)
 
 
 if __name__ == "__main__":
