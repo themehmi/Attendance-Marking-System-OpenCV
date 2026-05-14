@@ -29,6 +29,31 @@
         }
         .step-dot.active { background: #3b82f6; }
         .step-dot.done   { background: #22c55e; }
+
+        /* ── Analysis panel ── */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .analysis-card {
+            animation: slideUp 0.35s ease;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .analysis-card .attr-row {
+            transition: background 0.2s;
+        }
+        .analysis-card .attr-row:hover {
+            background: rgba(255,255,255,0.06);
+        }
+        .emotion-badge {
+            transition: all 0.3s ease;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
+            50%      { box-shadow: 0 0 12px 4px rgba(59,130,246,0.15); }
+        }
+        .analysis-card { animation: slideUp 0.35s ease, pulse-glow 3s ease-in-out infinite; }
     </style>
 </head>
 
@@ -347,6 +372,25 @@
                     <div class="absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
                 </div>
             </div>
+
+            <!-- ── DeepFace Analysis Panel ── -->
+            <div id="analysis-panel" class="hidden">
+                <div class="bg-slate-50 px-4 md:px-6 py-3 border-t border-gray-100">
+                    <h3 class="font-medium text-gray-700 flex items-center text-sm">
+                        <i class="fa-solid fa-brain text-purple-500 mr-2"></i>
+                        DeepFace Analysis
+                        <span class="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 border border-purple-200">LIVE</span>
+                    </h3>
+                </div>
+                <div id="analysis-cards" class="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Filled dynamically by JS -->
+                </div>
+                <div id="no-faces-msg" class="hidden px-6 py-8 text-center text-gray-400 text-sm">
+                    <i class="fa-solid fa-face-meh text-3xl mb-2 block text-gray-300"></i>
+                    No faces detected in frame
+                </div>
+            </div>
+
         </div>
     </div>
 </main>
@@ -413,6 +457,80 @@ function stopCamera() {
     placeholder.classList.remove('hidden');
 }
 
+const analysisPanel = document.getElementById('analysis-panel');
+const analysisCards = document.getElementById('analysis-cards');
+const noFacesMsg   = document.getElementById('no-faces-msg');
+
+const EMOTION_EMOJIS = {
+    happy: '😊', sad: '😢', angry: '😠', surprise: '😲',
+    fear: '😨', disgust: '🤢', neutral: '😐'
+};
+
+const GENDER_ICONS = { Man: 'fa-mars', Woman: 'fa-venus' };
+
+function renderAnalysisCards(faces) {
+    if (!faces || faces.length === 0) {
+        analysisCards.classList.add('hidden');
+        noFacesMsg.classList.remove('hidden');
+        return;
+    }
+    analysisCards.classList.remove('hidden');
+    noFacesMsg.classList.add('hidden');
+    analysisCards.innerHTML = '';
+
+    faces.forEach(face => {
+        const a = face.analysis;
+        if (!a) return;
+
+        const emoji = EMOTION_EMOJIS[a.emotion?.toLowerCase()] || '🤔';
+        const genderIcon = GENDER_ICONS[a.gender] || 'fa-user';
+        const isKnown = face.name !== 'Unknown';
+        const borderColor = isKnown ? 'border-green-500/30' : 'border-orange-500/30';
+        const nameColor = isKnown ? 'text-green-400' : 'text-orange-400';
+        const statusDot = isKnown
+            ? '<span class="w-2 h-2 rounded-full bg-green-400 inline-block mr-1.5"></span>'
+            : '<span class="w-2 h-2 rounded-full bg-orange-400 inline-block mr-1.5"></span>';
+
+        const card = document.createElement('div');
+        card.className = `analysis-card rounded-xl border ${borderColor} bg-slate-900/90 text-white p-4 shadow-lg`;
+        card.innerHTML = `
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
+                <span class="font-semibold text-sm flex items-center ${nameColor}">
+                    ${statusDot}${face.name}
+                </span>
+                <span class="emotion-badge text-xl" title="${a.emotion}">${emoji}</span>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="attr-row flex items-center justify-between rounded-lg px-2 py-1.5">
+                    <span class="text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-face-smile text-yellow-400 w-4 text-center"></i> Emotion
+                    </span>
+                    <span class="font-semibold text-yellow-300 capitalize">${a.emotion}</span>
+                </div>
+                <div class="attr-row flex items-center justify-between rounded-lg px-2 py-1.5">
+                    <span class="text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cake-candles text-pink-400 w-4 text-center"></i> Age
+                    </span>
+                    <span class="font-semibold text-pink-300">~${a.age} yrs</span>
+                </div>
+                <div class="attr-row flex items-center justify-between rounded-lg px-2 py-1.5">
+                    <span class="text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid ${genderIcon} text-blue-400 w-4 text-center"></i> Gender
+                    </span>
+                    <span class="font-semibold text-blue-300">${a.gender}</span>
+                </div>
+                <div class="attr-row flex items-center justify-between rounded-lg px-2 py-1.5">
+                    <span class="text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-earth-americas text-emerald-400 w-4 text-center"></i> Race
+                    </span>
+                    <span class="font-semibold text-emerald-300 capitalize">${a.race}</span>
+                </div>
+            </div>
+        `;
+        analysisCards.appendChild(card);
+    });
+}
+
 async function sendFrameToServer() {
     if (!isCameraOn) return;
     context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
@@ -424,8 +542,19 @@ async function sendFrameToServer() {
             body: JSON.stringify({ image: dataURL })
         });
         const data = await response.json();
-        if (data.image)      processedFeed.src = data.image;
-        else if (data.error) console.error("Server Error:", data.error);
+        if (data.image) {
+            processedFeed.src = data.image;
+            // Show analysis panel and render cards
+            if (data.faces && data.faces.length > 0) {
+                analysisPanel.classList.remove('hidden');
+                renderAnalysisCards(data.faces);
+            } else {
+                analysisPanel.classList.remove('hidden');
+                renderAnalysisCards([]);
+            }
+        } else if (data.error) {
+            console.error("Server Error:", data.error);
+        }
     } catch (err) {
         console.error("Error communicating with backend", err);
     }
@@ -443,6 +572,8 @@ function toggleCamera() {
         toggleBtn.innerHTML = '<i class="fa-solid fa-power-off mr-2"></i> Turn On Camera';
         toggleBtn.classList.replace('bg-red-600', 'bg-blue-600');
         toggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+        // Hide analysis panel when camera is off
+        analysisPanel.classList.add('hidden');
     }
 }
 toggleBtn.addEventListener('click', toggleCamera);
