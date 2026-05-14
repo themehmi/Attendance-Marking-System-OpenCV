@@ -64,6 +64,10 @@
                                 <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Employee Name</th>
                                 <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Date Logged</th>
                                 <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Time Logged</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Emotion</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Age</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Gender</th>
+                                <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200">Race</th>
                                 <th class="px-4 md:px-6 py-3 md:py-4 font-medium border-b border-gray-200 text-center">Status</th>
                             </tr>
                         </thead>
@@ -81,13 +85,41 @@
                                 </td>
                                 <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">{{ row[2] }}</td>
                                 <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">{{ row[3] }}</td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                    {% if row[4] %}
+                                    <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium capitalize">{{ row[4] }}</span>
+                                    {% else %}
+                                    <span class="text-gray-300 text-xs">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                    {% if row[5] %}
+                                    <span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full text-xs font-medium">~{{ row[5] }} yrs</span>
+                                    {% else %}
+                                    <span class="text-gray-300 text-xs">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                    {% if row[6] %}
+                                    <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">{{ row[6] }}</span>
+                                    {% else %}
+                                    <span class="text-gray-300 text-xs">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                                    {% if row[7] %}
+                                    <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium capitalize">{{ row[7] }}</span>
+                                    {% else %}
+                                    <span class="text-gray-300 text-xs">—</span>
+                                    {% endif %}
+                                </td>
                                 <td class="px-4 md:px-6 py-3 md:py-4 text-center">
                                     <span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">Present</span>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-gray-400">
+                                <td colspan="9" class="px-6 py-12 text-center text-gray-400">
                                     <i class="fa-solid fa-folder-open text-3xl mb-3 block"></i>
                                     No attendance records found yet.
                                 </td>
