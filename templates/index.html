@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ── Registration modal backdrop ── */
-        #register-modal {
-            backdrop-filter: blur(4px);
-        }
+        #register-modal { backdrop-filter: blur(4px); }
 
-        /* ── Snapshot preview pulse on capture ── */
         @keyframes flash {
-            0%   { opacity: 1; }
+            0%   { opacity: 1;   }
             50%  { opacity: 0.2; }
-            100% { opacity: 1; }
+            100% { opacity: 1;   }
         }
         .flash-anim { animation: flash 0.25s ease; }
 
-        /* ── Step indicator ── */
         .step-dot {
             width: 10px; height: 10px;
             border-radius: 9999px;
@@ -29,765 +25,717 @@
         }
         .step-dot.active { background: #3b82f6; }
         .step-dot.done   { background: #22c55e; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0);    }
+        }
+        .analysis-card {
+            animation: slideUp 0.35s ease;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .analysis-card .attr-row { transition: background 0.2s; }
+        .analysis-card .attr-row:hover { background: rgba(255,255,255,0.06); }
+        .emotion-badge { transition: all 0.3s ease; }
+
+        @keyframes pulse-glow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
+            50%     { box-shadow: 0 0 12px 4px rgba(59,130,246,0.15); }
+        }
+        .analysis-card { animation: slideUp 0.35s ease, pulse-glow 3s ease-in-out infinite; }
+
+        /* GitHub button */
+        #github-btn {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        #github-btn:hover {
+            transform: scale(1.07);
+            background: #1e293b;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+        }
     </style>
 </head>
 
 <body class="bg-gray-50 flex h-screen overflow-hidden text-gray-800 relative">
 
-<!-- REGISTER MODAL  (hidden by default) -->
-<div id="register-modal"
-     class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/60 px-4">
+    <!-- REGISTER MODAL -->
+    <div id="register-modal"
+         class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/60 px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-
-        <!-- Modal Header -->
-        <div class="bg-slate-900 px-6 py-4 flex items-center justify-between">
-            <div>
-                <h2 class="text-white font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-blue-400"></i>
-                    Register New User
-                </h2>
-                <p class="text-slate-400 text-xs mt-0.5">Your face will be added to the system instantly</p>
-            </div>
-            <button id="close-modal"
-                    class="text-slate-400 hover:text-white transition-colors text-xl leading-none">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-
-        <!-- Step Indicators -->
-        <div id="step-dots" class="flex items-center justify-center gap-3 pt-5 pb-1">
-            <div id="dot-1" class="step-dot active"></div>
-            <div id="dot-2" class="step-dot"></div>
-            <div id="dot-3" class="step-dot"></div>
-        </div>
-
-        <!-- ── STEP 1: Enter name ── -->
-        <div id="step-1" class="px-6 py-5">
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                <i class="fa-solid fa-id-card text-blue-500 mr-1"></i> Your Full Name
-            </label>
-            <input id="reg-name"
-                   type="text"
-                   placeholder="e.g. Alice Johnson"
-                   maxlength="60"
-                   class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm
-                          focus:outline-none focus:ring-2 focus:ring-blue-500
-                          focus:border-transparent transition placeholder-gray-400">
-            <p id="name-error" class="text-red-500 text-xs mt-2 hidden"></p>
-
-            <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mt-4 text-xs text-blue-700 space-y-1">
-                <p><i class="fa-solid fa-circle-info mr-1"></i> You will need to take <strong>at least 5 photos</strong> for accurate recognition.</p>
-                <p><i class="fa-solid fa-lightbulb mr-1"></i> Vary your angle slightly between shots for best results.</p>
-            </div>
-
-            <button id="step1-next"
-                    class="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white
-                           font-semibold py-3 rounded-xl transition-colors shadow
-                           flex items-center justify-center gap-2">
-                Continue
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
-        </div>
-
-        <!-- ── STEP 2: Multi-capture ── -->
-        <div id="step-2" class="px-6 py-5 hidden">
-
-            <!-- Header row: name + counter badge -->
-            <div class="flex items-center justify-between mb-3">
-                <p class="text-sm text-gray-600">
-                    Hi <span class="font-semibold text-gray-800" id="step2-name-label"></span>,
-                    look at the camera and capture <strong>5 photos</strong>.
-                </p>
-                <span id="photo-badge"
-                      class="shrink-0 ml-2 text-xs font-bold px-2.5 py-1 rounded-full
-                             bg-slate-100 text-slate-500 border border-slate-200 transition-colors">
-                    0 / 5
-                </span>
-            </div>
-
-            <!-- Progress bar -->
-            <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
-                <div id="photo-progress"
-                     class="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                     style="width:0%"></div>
-            </div>
-
-            <!-- Live webcam feed -->
-            <div class="relative rounded-xl overflow-hidden border-4 border-slate-800 bg-black
-                        flex items-center justify-center" style="min-height:210px;">
-                <video id="reg-video" autoplay playsinline
-                       class="w-full h-auto object-cover"></video>
-
-                <!-- Flash overlay on capture -->
-                <div id="capture-flash"
-                     class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-100"></div>
-
-                <!-- Viewfinder corners -->
-                <div class="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-blue-400 opacity-70 pointer-events-none"></div>
-                <div class="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-blue-400 opacity-70 pointer-events-none"></div>
-                <div class="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-blue-400 opacity-70 pointer-events-none"></div>
-                <div class="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-blue-400 opacity-70 pointer-events-none"></div>
-
-                <!-- No-camera fallback -->
-                <div id="reg-no-cam"
-                     class="absolute inset-0 flex flex-col items-center justify-center text-white hidden">
-                    <i class="fa-solid fa-video-slash text-4xl text-gray-500 mb-2"></i>
-                    <span class="text-gray-400 text-sm">Camera unavailable</span>
-                </div>
-            </div>
-
-            <!-- Thumbnail strip -->
-            <div id="thumb-strip"
-                 class="flex gap-2 mt-3 min-h-[56px] flex-wrap">
-                <!-- filled dynamically -->
-            </div>
-
-            <!-- Action buttons -->
-            <div class="flex gap-3 mt-4">
-                <button id="step2-back"
-                        class="border border-gray-300 text-gray-600 hover:bg-gray-50
-                               font-medium py-2.5 px-4 rounded-xl transition-colors text-sm">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <button id="capture-btn"
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white
-                               font-semibold py-2.5 rounded-xl transition-colors shadow text-sm
-                               flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-camera"></i>
-                    <span id="capture-btn-label">Capture Photo (0 / 5)</span>
-                </button>
-                <button id="step2-next"
-                        disabled
-                        class="bg-green-600 text-white font-semibold py-2.5 px-4 rounded-xl
-                               shadow text-sm flex items-center justify-center gap-1
-                               disabled:opacity-40 disabled:cursor-not-allowed
-                               enabled:hover:bg-green-700 transition-colors">
-                    Review <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ── STEP 3: Confirm & Submit ── -->
-        <div id="step-3" class="px-6 py-5 hidden">
-            <p class="text-sm text-gray-600 mb-1 text-center font-medium">
-                Review your <span id="photo-count-label" class="text-blue-600 font-bold"></span> photos
-            </p>
-            <p class="text-xs text-gray-400 text-center mb-3">Click a photo to remove it (minimum 5 required)</p>
-
-            <!-- Photo grid -->
-            <div id="review-grid"
-                 class="grid grid-cols-5 gap-1.5 mb-4">
-                <!-- filled dynamically -->
-            </div>
-
-            <p id="submit-error"
-               class="text-red-500 text-xs mt-1 mb-3 text-center hidden"></p>
-
-            <div class="flex gap-3">
-                <button id="step3-back"
-                        class="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50
-                               font-medium py-2.5 rounded-xl transition-colors text-sm">
-                    <i class="fa-solid fa-camera mr-1"></i> Add More
-                </button>
-                <button id="submit-register"
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white
-                               font-semibold py-2.5 rounded-xl transition-colors shadow text-sm
-                               flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-check"></i> Register Me
-                </button>
-            </div>
-        </div>
-
-        <!-- ── SUCCESS STATE ── -->
-        <div id="step-success" class="px-6 py-10 hidden flex flex-col items-center text-center">
-            <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                <i class="fa-solid fa-check text-green-600 text-4xl"></i>
-            </div>
-            <h3 class="font-bold text-gray-800 text-lg mb-1">You're Registered!</h3>
-            <p id="success-msg" class="text-gray-500 text-sm"></p>
-            <button id="close-success"
-                    class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold
-                           px-8 py-2.5 rounded-xl transition-colors shadow text-sm">
-                Done
-            </button>
-        </div>
-
-    </div><!-- /modal card -->
-</div><!-- /modal backdrop -->
-
-
-<!-- MOBILE SIDEBAR OVERLAY -->
-<div id="sidebar-overlay"
-     class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden transition-opacity"></div>
-
-<!-- SIDEBAR NAVIGATION -->
-<aside id="sidebar"
-       class="w-64 bg-slate-900 text-white flex flex-col shadow-xl
-              absolute md:relative z-50 h-full
-              transform -translate-x-full md:translate-x-0
-              transition-transform duration-300 ease-in-out">
-
-    <div class="h-16 flex items-center justify-between md:justify-center px-4 md:px-0 border-b border-slate-700">
-        <h1 class="text-xl font-bold tracking-wider">
-            <i class="fa-solid fa-expand text-blue-400 mr-2"></i> VisionAI
-        </h1>
-        <button id="close-sidebar" class="md:hidden text-gray-400 hover:text-white">
-            <i class="fa-solid fa-xmark text-xl"></i>
-        </button>
-    </div>
-
-    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <a href="/"
-           class="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg shadow-md transition-colors">
-            <i class="fa-solid fa-camera mr-3"></i> Live Scanner
-        </a>
-
-        <a href="/logs"
-           class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
-            <i class="fa-solid fa-table-list mr-3"></i> Attendance Logs
-        </a>
-
-        <!-- ─── REGISTER BUTTON (sidebar) ─── -->
-        <button id="open-register-sidebar"
-                class="w-full flex items-center px-4 py-3 text-slate-300
-                       hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
-            <i class="fa-solid fa-user-plus mr-3"></i> Register New User
-        </button>
-    </nav>
-
-    <div class="p-4 text-xs text-slate-500 text-center border-t border-slate-800">
-        System v2.1 (Cloud)
-    </div>
-</aside>
-
-<!-- MAIN CONTENT -->
-<main class="flex-1 flex flex-col h-screen overflow-y-auto w-full">
-
-    <!-- Top Header -->
-    <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
-        <div class="flex items-center">
-            <button id="open-sidebar"
-                    class="md:hidden mr-3 text-gray-600 hover:text-blue-600 transition-colors">
-                <i class="fa-solid fa-bars text-xl"></i>
-            </button>
-            <h2 class="text-lg md:text-xl font-semibold text-gray-700 truncate">
-                Entrance Checkpoint
-            </h2>
-        </div>
-
-        <div class="flex items-center gap-2 md:gap-3">
-            <!-- ─── REGISTER BUTTON (header, visible on desktop) ─── -->
-            <button id="open-register-header"
-                    class="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700
-                           text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg
-                           shadow transition-colors">
-                <i class="fa-solid fa-user-plus"></i>
-                <span class="hidden md:inline">Register New User</span>
-                <span class="md:hidden">Register</span>
-            </button>
-
-            <div class="flex items-center text-xs md:text-sm text-green-600 bg-green-50
-                        px-2 md:px-3 py-1.5 rounded-full border border-green-200 whitespace-nowrap">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 md:mr-2 animate-pulse"></span>
-                <span class="hidden sm:inline">Cloud System Active</span>
-                <span class="sm:hidden">Active</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Camera Panel -->
-    <div class="p-4 md:p-8 flex-1 flex justify-center items-start">
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden
-                    w-full max-w-4xl flex flex-col">
-
-            <div class="bg-slate-50 px-4 md:px-6 py-4 border-b border-gray-100
-                        flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between">
                 <div>
-                    <h3 class="font-medium text-gray-700 flex items-center">
-                        <i class="fa-solid fa-video text-red-500 mr-2"></i> Live Camera Feed
-                    </h3>
-                    <span class="text-xs text-gray-400">Position face in center of frame</span>
+                    <h2 class="text-white font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-blue-400"></i> Register New User
+                    </h2>
+                    <p class="text-slate-400 text-xs mt-0.5">Your face will be added to the system instantly</p>
                 </div>
-                <button id="toggle-camera"
-                        class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white
-                               px-4 py-2.5 rounded-lg shadow transition-colors text-sm
-                               font-medium flex items-center justify-center">
-                    <i class="fa-solid fa-power-off mr-2"></i> Turn On Camera
+                <button id="close-modal"
+                        class="text-slate-400 hover:text-white transition-colors text-xl leading-none">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="p-4 md:p-6 bg-gray-100 flex justify-center items-center flex-1">
-                <div class="relative rounded-xl overflow-hidden shadow-inner border-4 border-slate-800
-                            bg-black min-h-[300px] md:min-h-[400px] w-full flex justify-center items-center">
+            <div id="step-dots" class="flex items-center justify-center gap-3 pt-5 pb-1">
+                <div id="dot-1" class="step-dot active"></div>
+                <div id="dot-2" class="step-dot"></div>
+                <div id="dot-3" class="step-dot"></div>
+            </div>
 
-                    <div id="camera-placeholder"
-                         class="text-white flex flex-col items-center z-20 p-4 text-center">
-                        <i class="fa-solid fa-video-slash text-4xl md:text-5xl mb-3 text-gray-600"></i>
-                        <span class="text-gray-400 font-medium text-sm md:text-base">Camera is offline</span>
-                        <p class="text-gray-600 text-xs mt-2">
-                            New here?
-                            <button id="open-register-placeholder"
-                                    class="text-blue-400 hover:text-blue-300 underline underline-offset-2 ml-0.5">
-                                Register yourself
-                            </button>
-                            first.
-                        </p>
+            <!-- Step 1 -->
+            <div id="step-1" class="px-6 py-5">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fa-solid fa-id-card text-blue-500 mr-1"></i> Your Full Name
+                </label>
+                <input id="reg-name" type="text" placeholder="e.g. Alice Johnson" maxlength="60"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-blue-500
+                              focus:border-transparent transition placeholder-gray-400">
+                <p id="name-error" class="text-red-500 text-xs mt-2 hidden"></p>
+
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mt-4 text-xs text-blue-700 space-y-1">
+                    <p><i class="fa-solid fa-circle-info mr-1"></i>
+                       You will need to take <strong>at least 5 photos</strong> for accurate recognition.</p>
+                    <p><i class="fa-solid fa-lightbulb mr-1"></i>
+                       Vary your angle slightly between shots for best results.</p>
+                </div>
+
+                <button id="step1-next"
+                        class="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white
+                               font-semibold py-3 rounded-xl transition-colors shadow
+                               flex items-center justify-center gap-2">
+                    Continue <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="step-2" class="px-6 py-5 hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-sm text-gray-600">
+                        Hi <span class="font-semibold text-gray-800" id="step2-name-label"></span>,
+                        look at the camera and capture <strong>5 photos</strong>.
+                    </p>
+                    <span id="photo-badge"
+                          class="shrink-0 ml-2 text-xs font-bold px-2.5 py-1 rounded-full
+                                 bg-slate-100 text-slate-500 border border-slate-200 transition-colors">
+                        0 / 5
+                    </span>
+                </div>
+
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+                    <div id="photo-progress"
+                         class="h-2 rounded-full bg-blue-500 transition-all duration-300"
+                         style="width:0%"></div>
+                </div>
+
+                <div class="relative rounded-xl overflow-hidden border-4 border-slate-800 bg-black
+                            flex items-center justify-center" style="min-height:210px;">
+                    <video id="reg-video" autoplay playsinline class="w-full h-auto object-cover"></video>
+                    <div id="capture-flash"
+                         class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-100"></div>
+                    <div class="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-blue-400 opacity-70 pointer-events-none"></div>
+                    <div class="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-blue-400 opacity-70 pointer-events-none"></div>
+                    <div class="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-blue-400 opacity-70 pointer-events-none"></div>
+                    <div class="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-blue-400 opacity-70 pointer-events-none"></div>
+                    <div id="reg-no-cam"
+                         class="absolute inset-0 flex flex-col items-center justify-center text-white hidden">
+                        <i class="fa-solid fa-video-slash text-4xl text-gray-500 mb-2"></i>
+                        <span class="text-gray-400 text-sm">Camera unavailable</span>
                     </div>
+                </div>
 
-                    <video id="local-video" autoplay playsinline class="hidden"></video>
+                <div id="thumb-strip" class="flex gap-2 mt-3 min-h-[56px] flex-wrap"></div>
 
-                    <img id="processed-feed" src="" alt="Processed Feed"
-                         class="w-full h-auto max-h-[400px] md:max-h-[600px] object-contain hidden z-10">
-
-                    <!-- Viewfinder corners -->
-                    <div class="absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-4 border-l-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
-                    <div class="absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-4 border-r-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
-                    <div class="absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-4 border-l-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
-                    <div class="absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
+                <div class="flex gap-3 mt-4">
+                    <button id="step2-back"
+                            class="border border-gray-300 text-gray-600 hover:bg-gray-50
+                                   font-medium py-2.5 px-4 rounded-xl transition-colors text-sm">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <button id="capture-btn"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white
+                                   font-semibold py-2.5 rounded-xl transition-colors shadow text-sm
+                                   flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-camera"></i>
+                        <span id="capture-btn-label">Capture Photo (0 / 5)</span>
+                    </button>
+                    <button id="step2-next" disabled
+                            class="bg-green-600 text-white font-semibold py-2.5 px-4 rounded-xl
+                                   shadow text-sm flex items-center justify-center gap-1
+                                   disabled:opacity-40 disabled:cursor-not-allowed
+                                   enabled:hover:bg-green-700 transition-colors">
+                        Review <i class="fa-solid fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
+
+            <!-- Step 3 -->
+            <div id="step-3" class="px-6 py-5 hidden">
+                <p class="text-sm text-gray-600 mb-1 text-center font-medium">
+                    Review your <span id="photo-count-label" class="text-blue-600 font-bold"></span> photos
+                </p>
+                <p class="text-xs text-gray-400 text-center mb-3">Click a photo to remove it (minimum 5 required)</p>
+
+                <div id="review-grid" class="grid grid-cols-5 gap-1.5 mb-4"></div>
+
+                <p id="submit-error" class="text-red-500 text-xs mt-1 mb-3 text-center hidden"></p>
+
+                <div class="flex gap-3">
+                    <button id="step3-back"
+                            class="flex-1 border border-gray-300 text-gray-600 hover:bg-gray-50
+                                   font-medium py-2.5 rounded-xl transition-colors text-sm">
+                        <i class="fa-solid fa-camera mr-1"></i> Add More
+                    </button>
+                    <button id="submit-register"
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white
+                                   font-semibold py-2.5 rounded-xl transition-colors shadow text-sm
+                                   flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-check"></i> Register Me
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success -->
+            <div id="step-success" class="px-6 py-10 hidden flex flex-col items-center text-center">
+                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-check text-green-600 text-4xl"></i>
+                </div>
+                <h3 class="font-bold text-gray-800 text-lg mb-1">You're Registered!</h3>
+                <p id="success-msg" class="text-gray-500 text-sm"></p>
+                <button id="close-success"
+                        class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold
+                               px-8 py-2.5 rounded-xl transition-colors shadow text-sm">
+                    Done
+                </button>
+            </div>
+
         </div>
     </div>
-</main>
 
 
-<!-- SCRIPTS -->
-<script>
-  
-//  MOBILE SIDEBAR
+    <!-- SIDEBAR OVERLAY -->
+    <div id="sidebar-overlay"
+         class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden transition-opacity"></div>
 
-const sidebar         = document.getElementById('sidebar');
-const openSidebarBtn  = document.getElementById('open-sidebar');
-const closeSidebarBtn = document.getElementById('close-sidebar');
-const sidebarOverlay  = document.getElementById('sidebar-overlay');
+    <!-- SIDEBAR -->
+    <aside id="sidebar"
+           class="w-64 bg-slate-900 text-white flex flex-col shadow-xl
+                  absolute md:relative z-50 h-full
+                  transform -translate-x-full md:translate-x-0
+                  transition-transform duration-300 ease-in-out">
 
-function toggleSidebar() {
-    sidebar.classList.toggle('-translate-x-full');
-    sidebarOverlay.classList.toggle('hidden');
-}
-openSidebarBtn.addEventListener('click', toggleSidebar);
-closeSidebarBtn.addEventListener('click', toggleSidebar);
-sidebarOverlay.addEventListener('click', toggleSidebar);
+        <div class="h-16 flex items-center justify-between md:justify-center px-4 md:px-0 border-b border-slate-700">
+            <h1 class="text-xl font-bold tracking-wider">
+                <i class="fa-solid fa-expand text-blue-400 mr-2"></i> VisionAI
+            </h1>
+            <button id="close-sidebar" class="md:hidden text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="/"
+               class="flex items-center px-4 py-3 bg-blue-600 text-white rounded-lg shadow-md transition-colors">
+                <i class="fa-solid fa-camera mr-3"></i> Live Scanner
+            </a>
+            <a href="/logs"
+               class="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
+                <i class="fa-solid fa-table-list mr-3"></i> Attendance Logs
+            </a>
+            <button id="open-register-sidebar"
+                    class="w-full flex items-center px-4 py-3 text-slate-300
+                           hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
+                <i class="fa-solid fa-user-plus mr-3"></i> Register New User
+            </button>
+        </nav>
+
+        <div class="p-4 text-xs text-slate-500 text-center border-t border-slate-800">
+            System v2.1 (Cloud)
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto w-full">
+
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
+            <div class="flex items-center">
+                <button id="open-sidebar"
+                        class="md:hidden mr-3 text-gray-600 hover:text-blue-600 transition-colors">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700 truncate">Entrance Checkpoint</h2>
+            </div>
+
+            <div class="flex items-center gap-2 md:gap-3">
+                <button id="open-register-header"
+                        class="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700
+                               text-white text-sm font-medium px-3 md:px-4 py-2 rounded-lg
+                               shadow transition-colors">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span class="hidden md:inline">Register New User</span>
+                    <span class="md:hidden">Register</span>
+                </button>
+
+                <div class="flex items-center text-xs md:text-sm text-green-600 bg-green-50
+                            px-2 md:px-3 py-1.5 rounded-full border border-green-200 whitespace-nowrap">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 md:mr-2 animate-pulse"></span>
+                    <span class="hidden sm:inline">Cloud System Active</span>
+                    <span class="sm:hidden">Active</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-4 md:p-8 flex-1 flex justify-center items-start">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden
+                        w-full max-w-4xl flex flex-col">
+
+                <div class="bg-slate-50 px-4 md:px-6 py-4 border-b border-gray-100
+                            flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+                    <div>
+                        <h3 class="font-medium text-gray-700 flex items-center">
+                            <i class="fa-solid fa-video text-red-500 mr-2"></i> Live Camera Feed
+                        </h3>
+                        <span class="text-xs text-gray-400">Position face in center of frame</span>
+                    </div>
+                    <button id="toggle-camera"
+                            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white
+                                   px-4 py-2.5 rounded-lg shadow transition-colors text-sm
+                                   font-medium flex items-center justify-center">
+                        <i class="fa-solid fa-power-off mr-2"></i> Turn On Camera
+                    </button>
+                </div>
+
+                <div class="p-4 md:p-6 bg-gray-100 flex justify-center items-center flex-1">
+                    <div class="relative rounded-xl overflow-hidden shadow-inner border-4 border-slate-800
+                                bg-black min-h-[300px] md:min-h-[400px] w-full flex justify-center items-center">
+
+                        <div id="camera-placeholder"
+                             class="text-white flex flex-col items-center z-20 p-4 text-center">
+                            <i class="fa-solid fa-video-slash text-4xl md:text-5xl mb-3 text-gray-600"></i>
+                            <span class="text-gray-400 font-medium text-sm md:text-base">Camera is offline</span>
+                            <p class="text-gray-600 text-xs mt-2">
+                                New here?
+                                <button id="open-register-placeholder"
+                                        class="text-blue-400 hover:text-blue-300 underline underline-offset-2 ml-0.5">
+                                    Register yourself
+                                </button>
+                                first.
+                            </p>
+                        </div>
+
+                        <video id="local-video" autoplay playsinline class="hidden"></video>
+
+                        <img id="processed-feed" src="" alt="Processed Feed"
+                             class="w-full h-auto max-h-[400px] md:max-h-[600px] object-contain hidden z-10">
+
+                        <div class="absolute top-2 left-2 md:top-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-t-4 border-l-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
+                        <div class="absolute top-2 right-2 md:top-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-t-4 border-r-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
+                        <div class="absolute bottom-2 left-2 md:bottom-4 md:left-4 w-6 h-6 md:w-8 md:h-8 border-b-4 border-l-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
+                        <div class="absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 border-b-4 border-r-4 border-blue-500 opacity-70 z-20 pointer-events-none"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
 
 
+    <!-- GITHUB SOURCE LINK — fixed bottom-right corner -->
+    <a  id="github-btn"
+        href="https://github.com/themehmi/Attendance-Marking-System-OpenCV"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="View source on GitHub"
+        class="fixed bottom-5 right-5 z-[200]
+               flex items-center gap-2.5
+               bg-slate-900 text-white
+               text-xs font-semibold
+               pl-3.5 pr-4 py-2.5
+               rounded-full
+               shadow-2xl border border-white/10">
 
-//  MAIN CAMERA (attendance scanning)
+        <!-- Inline GitHub mark SVG — no extra CDN dependency -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 96"
+             class="w-4 h-4 shrink-0 fill-white">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405
+                     46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59
+                     2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324
+                     -2.958.324-2.958 4.92.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378
+                     14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378
+                     -22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486
+                     -13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125
+                     0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97
+                     11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06
+                     -22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08
+                     13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935
+                     33.405-46.691C97.707 22 75.788 0 48.854 0z"/>
+        </svg>
 
-const toggleBtn       = document.getElementById('toggle-camera');
-const localVideo      = document.getElementById('local-video');
-const processedFeed   = document.getElementById('processed-feed');
-const placeholder     = document.getElementById('camera-placeholder');
+        <span>Source Code</span>
+    </a>
 
-let isCameraOn        = false;
-let localStream       = null;
-let processingInterval = null;
 
-const canvas  = document.createElement('canvas');
-const context = canvas.getContext('2d');
+    <!--SCRIPTS-->
+    <script>
 
-async function startCamera() {
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        localVideo.srcObject = localStream;
-        placeholder.classList.add('hidden');
-        processedFeed.classList.remove('hidden');
+        // MOBILE SIDEBAR
+        const sidebar         = document.getElementById('sidebar');
+        const openSidebarBtn  = document.getElementById('open-sidebar');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
+        const sidebarOverlay  = document.getElementById('sidebar-overlay');
 
-        localVideo.onloadedmetadata = () => {
-            canvas.width  = localVideo.videoWidth;
-            canvas.height = localVideo.videoHeight;
-            processingInterval = setInterval(sendFrameToServer, 300);
-        };
-    } catch (err) {
-        alert("Camera access denied or no camera found.");
-        console.error(err);
-        toggleCamera();
-    }
-}
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        }
+        openSidebarBtn.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
 
-function stopCamera() {
-    if (localStream) localStream.getTracks().forEach(t => t.stop());
-    if (processingInterval) clearInterval(processingInterval);
-    processedFeed.src = "";
-    processedFeed.classList.add('hidden');
-    placeholder.classList.remove('hidden');
-}
 
-async function sendFrameToServer() {
-    if (!isCameraOn) return;
-    context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
-    const dataURL = canvas.toDataURL('image/jpeg', 0.7);
-    try {
-        const response = await fetch('/process_frame', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: dataURL })
+        //MAIN CAMERA
+        const toggleBtn     = document.getElementById('toggle-camera');
+        const localVideo    = document.getElementById('local-video');
+        const processedFeed = document.getElementById('processed-feed');
+        const placeholder   = document.getElementById('camera-placeholder');
+
+        let isCameraOn = false;
+        let localStream = null;
+        let processingInterval = null;
+
+        const canvas  = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        async function startCamera() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                localVideo.srcObject = localStream;
+                placeholder.classList.add('hidden');
+                processedFeed.classList.remove('hidden');
+                localVideo.onloadedmetadata = () => {
+                    canvas.width  = localVideo.videoWidth;
+                    canvas.height = localVideo.videoHeight;
+                    sendFrameToServer();
+                };
+            } catch (err) {
+                alert("Camera access denied or no camera found.");
+                console.error(err);
+                toggleCamera();
+            }
+        }
+
+        function stopCamera() {
+            if (localStream) localStream.getTracks().forEach(t => t.stop());
+            if (processingInterval) clearInterval(processingInterval);
+            processedFeed.src = "";
+            processedFeed.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+
+        async function sendFrameToServer() {
+            if (!isCameraOn) return;
+            context.drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+            const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+            try {
+                const response = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
+                });
+                const data = await response.json();
+                if (data.image)      processedFeed.src = data.image;
+                else if (data.error) console.error("Server Error:", data.error);
+            } catch (err) {
+                console.error("Error communicating with backend", err);
+            } finally {
+                if (isCameraOn) setTimeout(sendFrameToServer, 250);
+            }
+        }
+
+        function toggleCamera() {
+            isCameraOn = !isCameraOn;
+            if (isCameraOn) {
+                startCamera();
+                toggleBtn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> Turn Off Camera';
+                toggleBtn.classList.replace('bg-blue-600', 'bg-red-600');
+                toggleBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+            } else {
+                stopCamera();
+                toggleBtn.innerHTML = '<i class="fa-solid fa-power-off mr-2"></i> Turn On Camera';
+                toggleBtn.classList.replace('bg-red-600', 'bg-blue-600');
+                toggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+            }
+        }
+        toggleBtn.addEventListener('click', toggleCamera);
+
+        const MIN_PHOTOS = 5;
+        const MAX_PHOTOS = 10;
+
+        const modal           = document.getElementById('register-modal');
+        const closeModalBtn   = document.getElementById('close-modal');
+        const closeSuccessBtn = document.getElementById('close-success');
+        const stepDots        = document.getElementById('step-dots');
+        const step1El         = document.getElementById('step-1');
+        const step2El         = document.getElementById('step-2');
+        const step3El         = document.getElementById('step-3');
+        const stepSuccessEl   = document.getElementById('step-success');
+        const dot1 = document.getElementById('dot-1');
+        const dot2 = document.getElementById('dot-2');
+        const dot3 = document.getElementById('dot-3');
+
+        const regNameInput    = document.getElementById('reg-name');
+        const nameError       = document.getElementById('name-error');
+        const step1NextBtn    = document.getElementById('step1-next');
+        const regVideo        = document.getElementById('reg-video');
+        const regNoCam        = document.getElementById('reg-no-cam');
+        const step2NameLabel  = document.getElementById('step2-name-label');
+        const step2BackBtn    = document.getElementById('step2-back');
+        const captureBtn      = document.getElementById('capture-btn');
+        const captureBtnLabel = document.getElementById('capture-btn-label');
+        const step2NextBtn    = document.getElementById('step2-next');
+        const photoBadge      = document.getElementById('photo-badge');
+        const photoProgress   = document.getElementById('photo-progress');
+        const thumbStrip      = document.getElementById('thumb-strip');
+        const captureFlash    = document.getElementById('capture-flash');
+        const reviewGrid      = document.getElementById('review-grid');
+        const photoCountLabel = document.getElementById('photo-count-label');
+        const submitError     = document.getElementById('submit-error');
+        const step3BackBtn    = document.getElementById('step3-back');
+        const submitRegBtn    = document.getElementById('submit-register');
+        const successMsg      = document.getElementById('success-msg');
+
+        let regStream    = null;
+        let capturedImgs = [];
+        const regCanvas  = document.createElement('canvas');
+        const regCtx     = regCanvas.getContext('2d');
+
+        function showStep(num) {
+            [step1El, step2El, step3El, stepSuccessEl].forEach(el => el.classList.add('hidden'));
+            [dot1, dot2, dot3].forEach((d, i) => {
+                d.classList.remove('active', 'done');
+                if (i + 1 < num)        d.classList.add('done');
+                else if (i + 1 === num) d.classList.add('active');
+            });
+            if (num === 1) step1El.classList.remove('hidden');
+            if (num === 2) step2El.classList.remove('hidden');
+            if (num === 3) { step3El.classList.remove('hidden'); renderReviewGrid(); }
+            if (num === 4) { stepSuccessEl.classList.remove('hidden'); stepDots.classList.add('hidden'); }
+        }
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            stepDots.classList.remove('hidden');
+            resetModal();
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            stopRegStream();
+        }
+
+        function stopRegStream() {
+            if (regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
+        }
+
+        function resetModal() {
+            regNameInput.value = '';
+            nameError.classList.add('hidden');
+            submitError.classList.add('hidden');
+            capturedImgs = [];
+            thumbStrip.innerHTML = '';
+            reviewGrid.innerHTML = '';
+            updatePhotoUI();
+            showStep(1);
+            stopRegStream();
+        }
+
+        function updatePhotoUI() {
+            const n    = capturedImgs.length;
+            const pct  = Math.min(n / MIN_PHOTOS * 100, 100);
+            const done = n >= MIN_PHOTOS;
+
+            photoProgress.style.width = pct + '%';
+            photoProgress.classList.toggle('bg-blue-500',   !done);
+            photoProgress.classList.toggle('bg-green-500',  done);
+
+            photoBadge.textContent = `${n} / ${MIN_PHOTOS}`;
+            photoBadge.classList.toggle('bg-green-100',     done);
+            photoBadge.classList.toggle('text-green-700',   done);
+            photoBadge.classList.toggle('border-green-300', done);
+            photoBadge.classList.toggle('bg-slate-100',    !done);
+            photoBadge.classList.toggle('text-slate-500',  !done);
+            photoBadge.classList.toggle('border-slate-200',!done);
+
+            captureBtnLabel.textContent = done
+                ? `Capture Another (${n} / ${MAX_PHOTOS})`
+                : `Capture Photo (${n} / ${MIN_PHOTOS})`;
+            captureBtn.disabled   = n >= MAX_PHOTOS;
+            step2NextBtn.disabled = !done;
+        }
+
+        function renderThumbStrip() {
+            thumbStrip.innerHTML = '';
+            capturedImgs.forEach((src, idx) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'relative group';
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'w-12 h-12 object-cover rounded-lg border-2 border-green-400';
+                img.alt = `Photo ${idx + 1}`;
+                const del = document.createElement('button');
+                del.className = `absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white
+                                 rounded-full text-[9px] flex items-center justify-center
+                                 opacity-0 group-hover:opacity-100 transition-opacity`;
+                del.innerHTML = '✕';
+                del.title = 'Remove';
+                del.addEventListener('click', () => {
+                    capturedImgs.splice(idx, 1);
+                    renderThumbStrip();
+                    updatePhotoUI();
+                });
+                wrap.appendChild(img);
+                wrap.appendChild(del);
+                thumbStrip.appendChild(wrap);
+            });
+        }
+
+        function renderReviewGrid() {
+            reviewGrid.innerHTML = '';
+            photoCountLabel.textContent = capturedImgs.length;
+            capturedImgs.forEach((src, idx) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'relative group cursor-pointer';
+                wrap.title = 'Click to remove';
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = `w-full aspect-square object-cover rounded-lg border-2 border-gray-200
+                                 group-hover:border-red-400 group-hover:opacity-70 transition`;
+                const x = document.createElement('div');
+                x.className = `absolute inset-0 flex items-center justify-center
+                               opacity-0 group-hover:opacity-100 transition pointer-events-none`;
+                x.innerHTML = '<i class="fa-solid fa-trash text-red-500 text-lg drop-shadow"></i>';
+                wrap.addEventListener('click', () => {
+                    capturedImgs.splice(idx, 1);
+                    if (capturedImgs.length < MIN_PHOTOS) goBackToCapture();
+                    else renderReviewGrid();
+                });
+                wrap.appendChild(img);
+                wrap.appendChild(x);
+                reviewGrid.appendChild(wrap);
+            });
+        }
+
+        ['open-register-sidebar', 'open-register-header', 'open-register-placeholder'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', () => {
+                if (!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
+                openModal();
+            });
         });
-        const data = await response.json();
-        if (data.image)      processedFeed.src = data.image;
-        else if (data.error) console.error("Server Error:", data.error);
-    } catch (err) {
-        console.error("Error communicating with backend", err);
-    }
-}
 
-function toggleCamera() {
-    isCameraOn = !isCameraOn;
-    if (isCameraOn) {
-        startCamera();
-        toggleBtn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i> Turn Off Camera';
-        toggleBtn.classList.replace('bg-blue-600', 'bg-red-600');
-        toggleBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
-    } else {
-        stopCamera();
-        toggleBtn.innerHTML = '<i class="fa-solid fa-power-off mr-2"></i> Turn On Camera';
-        toggleBtn.classList.replace('bg-red-600', 'bg-blue-600');
-        toggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
-    }
-}
-toggleBtn.addEventListener('click', toggleCamera);
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+        closeSuccessBtn.addEventListener('click', closeModal);
 
+        step1NextBtn.addEventListener('click', async () => {
+            const name = regNameInput.value.trim();
+            if (!name) {
+                nameError.textContent = 'Please enter your name.';
+                nameError.classList.remove('hidden');
+                return;
+            }
+            if (!/^[\w\s\-]+$/.test(name)) {
+                nameError.textContent = 'Only letters, numbers, spaces, and hyphens are allowed.';
+                nameError.classList.remove('hidden');
+                return;
+            }
+            nameError.classList.add('hidden');
+            step2NameLabel.textContent = name;
+            await startRegCam();
+            showStep(2);
+        });
 
+        regNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') step1NextBtn.click(); });
 
-//  REGISTRATION MODAL  (multi-photo, min 5)
+        async function startRegCam() {
+            try {
+                regStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                regVideo.srcObject = regStream;
+                regNoCam.classList.add('hidden');
+            } catch (err) {
+                regNoCam.classList.remove('hidden');
+                console.error('Reg camera error:', err);
+            }
+        }
 
-const MIN_PHOTOS = 5;
-const MAX_PHOTOS = 10;
+        step2BackBtn.addEventListener('click', () => {
+            stopRegStream();
+            capturedImgs = [];
+            thumbStrip.innerHTML = '';
+            updatePhotoUI();
+            showStep(1);
+        });
 
-const modal             = document.getElementById('register-modal');
-const closeModalBtn     = document.getElementById('close-modal');
-const closeSuccessBtn   = document.getElementById('close-success');
-const stepDots          = document.getElementById('step-dots');
-
-// Step panels
-const step1El           = document.getElementById('step-1');
-const step2El           = document.getElementById('step-2');
-const step3El           = document.getElementById('step-3');
-const stepSuccessEl     = document.getElementById('step-success');
-
-// Dots
-const dot1 = document.getElementById('dot-1');
-const dot2 = document.getElementById('dot-2');
-const dot3 = document.getElementById('dot-3');
-
-// Step 1
-const regNameInput      = document.getElementById('reg-name');
-const nameError         = document.getElementById('name-error');
-const step1NextBtn      = document.getElementById('step1-next');
-
-// Step 2
-const regVideo          = document.getElementById('reg-video');
-const regNoCam          = document.getElementById('reg-no-cam');
-const step2NameLabel    = document.getElementById('step2-name-label');
-const step2BackBtn      = document.getElementById('step2-back');
-const captureBtn        = document.getElementById('capture-btn');
-const captureBtnLabel   = document.getElementById('capture-btn-label');
-const step2NextBtn      = document.getElementById('step2-next');
-const photoBadge        = document.getElementById('photo-badge');
-const photoProgress     = document.getElementById('photo-progress');
-const thumbStrip        = document.getElementById('thumb-strip');
-const captureFlash      = document.getElementById('capture-flash');
-
-// Step 3
-const reviewGrid        = document.getElementById('review-grid');
-const photoCountLabel   = document.getElementById('photo-count-label');
-const submitError       = document.getElementById('submit-error');
-const step3BackBtn      = document.getElementById('step3-back');
-const submitRegisterBtn = document.getElementById('submit-register');
-
-// Success
-const successMsg        = document.getElementById('success-msg');
-
-let regStream    = null;
-let capturedImgs = [];          // array of base64 data URLs
-const regCanvas  = document.createElement('canvas');
-const regCtx     = regCanvas.getContext('2d');
-
-// ── Step navigation ───────────────────────────────────────
-
-function showStep(num) {
-    [step1El, step2El, step3El, stepSuccessEl].forEach(el => el.classList.add('hidden'));
-    [dot1, dot2, dot3].forEach((d, i) => {
-        d.classList.remove('active', 'done');
-        if (i + 1 < num)       d.classList.add('done');
-        else if (i + 1 === num) d.classList.add('active');
-    });
-
-    if (num === 1) step1El.classList.remove('hidden');
-    if (num === 2) step2El.classList.remove('hidden');
-    if (num === 3) {
-        step3El.classList.remove('hidden');
-        renderReviewGrid();
-    }
-    if (num === 4) {
-        stepSuccessEl.classList.remove('hidden');
-        stepDots.classList.add('hidden');
-    }
-}
-
-// ── Modal open / close 
-
-function openModal() {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    stepDots.classList.remove('hidden');
-    resetModal();
-}
-
-function closeModal() {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    stopRegStream();
-}
-
-function stopRegStream() {
-    if (regStream) { regStream.getTracks().forEach(t => t.stop()); regStream = null; }
-}
-
-function resetModal() {
-    regNameInput.value = '';
-    nameError.classList.add('hidden');
-    submitError.classList.add('hidden');
-    capturedImgs = [];
-    thumbStrip.innerHTML = '';
-    reviewGrid.innerHTML = '';
-    updatePhotoUI();
-    showStep(1);
-    stopRegStream();
-}
-
-// ── Update progress / badge / button label 
-
-function updatePhotoUI() {
-    const n    = capturedImgs.length;
-    const pct  = Math.min(n / MIN_PHOTOS * 100, 100);
-    const done = n >= MIN_PHOTOS;
-
-    // Progress bar
-    photoProgress.style.width = pct + '%';
-    photoProgress.classList.toggle('bg-blue-500',  !done);
-    photoProgress.classList.toggle('bg-green-500', done);
-
-    // Badge
-    photoBadge.textContent = `${n} / ${MIN_PHOTOS}`;
-    photoBadge.classList.toggle('bg-green-100',  done);
-    photoBadge.classList.toggle('text-green-700', done);
-    photoBadge.classList.toggle('border-green-300', done);
-    photoBadge.classList.toggle('bg-slate-100',  !done);
-    photoBadge.classList.toggle('text-slate-500', !done);
-    photoBadge.classList.toggle('border-slate-200', !done);
-
-    // Capture button label
-    captureBtnLabel.textContent = done
-        ? `Capture Another (${n} / ${MAX_PHOTOS})`
-        : `Capture Photo (${n} / ${MIN_PHOTOS})`;
-    captureBtn.disabled = n >= MAX_PHOTOS;
-
-    // Review button
-    step2NextBtn.disabled = !done;
-}
-
-// Thumbnail strip (step 2) 
-
-function renderThumbStrip() {
-    thumbStrip.innerHTML = '';
-    capturedImgs.forEach((src, idx) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'relative group';
-
-        const img = document.createElement('img');
-        img.src = src;
-        img.className = 'w-12 h-12 object-cover rounded-lg border-2 border-green-400';
-        img.alt = `Photo ${idx + 1}`;
-
-        const del = document.createElement('button');
-        del.className = `absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white
-                         rounded-full text-[9px] flex items-center justify-center
-                         opacity-0 group-hover:opacity-100 transition-opacity`;
-        del.innerHTML = '✕';
-        del.title     = 'Remove';
-        del.addEventListener('click', () => {
-            capturedImgs.splice(idx, 1);
+        captureBtn.addEventListener('click', () => {
+            if (!regStream || capturedImgs.length >= MAX_PHOTOS) return;
+            regCanvas.width  = regVideo.videoWidth  || 640;
+            regCanvas.height = regVideo.videoHeight || 480;
+            regCtx.drawImage(regVideo, 0, 0, regCanvas.width, regCanvas.height);
+            capturedImgs.push(regCanvas.toDataURL('image/jpeg', 0.92));
+            captureFlash.style.opacity = '0.6';
+            setTimeout(() => { captureFlash.style.opacity = '0'; }, 120);
             renderThumbStrip();
             updatePhotoUI();
         });
 
-        wrap.appendChild(img);
-        wrap.appendChild(del);
-        thumbStrip.appendChild(wrap);
-    });
-}
+        step2NextBtn.addEventListener('click', () => { stopRegStream(); showStep(3); });
 
-// Review grid (step 3) 
+        async function goBackToCapture() {
+            await startRegCam();
+            renderThumbStrip();
+            updatePhotoUI();
+            showStep(2);
+        }
 
-function renderReviewGrid() {
-    reviewGrid.innerHTML = '';
-    photoCountLabel.textContent = capturedImgs.length;
+        step3BackBtn.addEventListener('click', goBackToCapture);
 
-    capturedImgs.forEach((src, idx) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'relative group cursor-pointer';
-        wrap.title = 'Click to remove';
-
-        const img = document.createElement('img');
-        img.src = src;
-        img.className = `w-full aspect-square object-cover rounded-lg border-2 border-gray-200
-                         group-hover:border-red-400 group-hover:opacity-70 transition`;
-
-        const x = document.createElement('div');
-        x.className = `absolute inset-0 flex items-center justify-center
-                       opacity-0 group-hover:opacity-100 transition pointer-events-none`;
-        x.innerHTML = '<i class="fa-solid fa-trash text-red-500 text-lg drop-shadow"></i>';
-
-        wrap.addEventListener('click', () => {
-            capturedImgs.splice(idx, 1);
+        submitRegBtn.addEventListener('click', async () => {
             if (capturedImgs.length < MIN_PHOTOS) {
-                // not enough photos — go back to capture
-                goBackToCapture();
-            } else {
-                renderReviewGrid();
+                submitError.textContent = `Please provide at least ${MIN_PHOTOS} photos.`;
+                submitError.classList.remove('hidden');
+                return;
+            }
+            const name = regNameInput.value.trim();
+            submitRegBtn.disabled = true;
+            submitRegBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Registering…';
+            submitError.classList.add('hidden');
+            try {
+                const res  = await fetch('/register', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ name, images: capturedImgs })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    successMsg.textContent = data.message;
+                    showStep(4);
+                } else {
+                    submitError.textContent = data.error || 'Registration failed. Please try again.';
+                    submitError.classList.remove('hidden');
+                }
+            } catch (err) {
+                submitError.textContent = 'Network error. Please try again.';
+                submitError.classList.remove('hidden');
+            } finally {
+                submitRegBtn.disabled = false;
+                submitRegBtn.innerHTML = '<i class="fa-solid fa-user-check mr-2"></i> Register Me';
             }
         });
-
-        wrap.appendChild(img);
-        wrap.appendChild(x);
-        reviewGrid.appendChild(wrap);
-    });
-}
-
-// Open triggers 
-['open-register-sidebar', 'open-register-header', 'open-register-placeholder'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.addEventListener('click', () => {
-        if (!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
-        openModal();
-    });
-});
-
-closeModalBtn.addEventListener('click', closeModal);
-modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-closeSuccessBtn.addEventListener('click', closeModal);
-
-// STEP 1 → 2 
-
-step1NextBtn.addEventListener('click', async () => {
-    const name = regNameInput.value.trim();
-    if (!name) {
-        nameError.textContent = 'Please enter your name.';
-        nameError.classList.remove('hidden');
-        return;
-    }
-    if (!/^[\w\s\-]+$/.test(name)) {
-        nameError.textContent = 'Only letters, numbers, spaces, and hyphens are allowed.';
-        nameError.classList.remove('hidden');
-        return;
-    }
-    nameError.classList.add('hidden');
-    step2NameLabel.textContent = name;
-    await startRegCam();
-    showStep(2);
-});
-
-regNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') step1NextBtn.click(); });
-
-// Camera helpers 
-
-async function startRegCam() {
-    try {
-        regStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-        regVideo.srcObject = regStream;
-        regNoCam.classList.add('hidden');
-    } catch (err) {
-        regNoCam.classList.remove('hidden');
-        console.error('Reg camera error:', err);
-    }
-}
-
-// STEP 2 → 1 
-  
-step2BackBtn.addEventListener('click', () => {
-    stopRegStream();
-    capturedImgs = [];
-    thumbStrip.innerHTML = '';
-    updatePhotoUI();
-    showStep(1);
-});
-
-// CAPTURE photo
-
-captureBtn.addEventListener('click', () => {
-    if (!regStream || capturedImgs.length >= MAX_PHOTOS) return;
-
-    regCanvas.width  = regVideo.videoWidth  || 640;
-    regCanvas.height = regVideo.videoHeight || 480;
-    regCtx.drawImage(regVideo, 0, 0, regCanvas.width, regCanvas.height);
-    const dataURL = regCanvas.toDataURL('image/jpeg', 0.92);
-    capturedImgs.push(dataURL);
-
-    // Flash feedback
-    captureFlash.style.opacity = '0.6';
-    setTimeout(() => { captureFlash.style.opacity = '0'; }, 120);
-
-    renderThumbStrip();
-    updatePhotoUI();
-});
-
-// STEP 2 → 3 
-step2NextBtn.addEventListener('click', () => {
-    stopRegStream();
-    showStep(3);
-});
-
-// STEP 3 → 2 (add more)
-
-async function goBackToCapture() {
-    await startRegCam();
-    renderThumbStrip();
-    updatePhotoUI();
-    showStep(2);
-}
-
-step3BackBtn.addEventListener('click', goBackToCapture);
-
-// STEP 3 → Submit
-
-submitRegisterBtn.addEventListener('click', async () => {
-    if (capturedImgs.length < MIN_PHOTOS) {
-        submitError.textContent = `Please provide at least ${MIN_PHOTOS} photos.`;
-        submitError.classList.remove('hidden');
-        return;
-    }
-
-    const name = regNameInput.value.trim();
-
-    submitRegisterBtn.disabled = true;
-    submitRegisterBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Registering…';
-    submitError.classList.add('hidden');
-
-    try {
-        const res  = await fetch('/register', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ name, images: capturedImgs })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            successMsg.textContent = data.message;
-            showStep(4);
-        } else {
-            submitError.textContent = data.error || 'Registration failed. Please try again.';
-            submitError.classList.remove('hidden');
-        }
-    } catch (err) {
-        submitError.textContent = 'Network error. Please try again.';
-        submitError.classList.remove('hidden');
-    } finally {
-        submitRegisterBtn.disabled = false;
-        submitRegisterBtn.innerHTML = '<i class="fa-solid fa-user-check mr-2"></i> Register Me';
-    }
-});
-</script>
+    </script>
 
 </body>
 </html>
