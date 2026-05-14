@@ -6,3 +6,5 @@ pathlib
 numpy
 dill
 gunicorn
+deepface
+tf-keras
